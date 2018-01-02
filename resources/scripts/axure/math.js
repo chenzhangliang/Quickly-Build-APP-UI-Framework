@@ -150,12 +150,7 @@
             tempBoundingRect.height = Number(element.getAttribute('WidgetHeight'));
         } else {
             tempBoundingRect = element.getBoundingClientRect();
-            var jElement = $(element);
-            position = jElement.position();
-            if(jElement.css('position') == 'fixed') {
-                position.left += Number(jElement.css('margin-left').replace("px", ""));
-                position.top += Number(jElement.css('margin-top').replace("px", ""));
-            }
+            position = $(element).position();
         }
 
         var layers = $ax('#' + widgetId).getParents(true, ['layer'])[0];
@@ -293,7 +288,6 @@
     $ax.public.fn.l2 = function (x, y) { return Math.sqrt(x * x + y * y); }
 
     $ax.public.fn.convertToSingleImage = function (jobj) {
-        if(!jobj[0]) return;
 
         var widgetId = jobj[0].id;
         var object = $obj(widgetId);

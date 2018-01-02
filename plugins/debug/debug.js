@@ -35,20 +35,23 @@
         var finishedStack = [];
 
         $axure.messageCenter.addMessageListener(function (message, data) {
-            if(message == 'axCompositeEventMessage') {
-                for(var i = 0; i < data.length; i++) {
-                    processMessages(data[i].message, data[i].data);
-                }
-            } else processMessages(message, data);
-        });
-
-        var processMessages = function(message, data) {
             if(message == 'globalVariableValues') {
+                //If variables container isn't visible, then ignore
+                //if(!$('#variablesContainer').is(":visible")) {
+                //    return;
+                //}
+
                 $('#variablesDiv').empty();
                 for(var key in data) {
                     var value = data[key] == '' ? '(blank)' : data[key];
                     $('#variablesDiv').append('<div class="variableDiv"><span class="variableName">' + key + '</span><br/>' + value + '</div>');
                 }
+            } if(message == 'setGlobalVar') {
+                //$('#variablesContainer').html("");
+                //for (var variable in $axure.globalVariableProvider.getDefinedVariables) {
+                //    $('#variablesContainer').append("<div class='varName'>" + variable + "</div>");
+                //    $('#variablesContainer').append("<div class='varVal'>" + $axure.globalVariableProvider.getVariableValue(variable) + "</div>");
+                //}
             } else if(message == 'axEvent') {
                 var addToStack = "<div class='axEventBlock'>";
                 addToStack += "<div class='axTime'>" + new Date().toLocaleTimeString() + "</div>";
@@ -75,7 +78,7 @@
             } else if (message == 'axAction') {
                 currentStack[currentStack.length - 1] += "<div class='axAction'>" + data.description + "</div>";
             }
-        }
+        });
 
         // bind to the page load
         $axure.page.bind('load.debug', function () {

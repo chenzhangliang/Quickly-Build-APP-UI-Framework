@@ -28,29 +28,27 @@
     };
 
     var _setAllVisible = function(query, visible) {
-        for(var i = 0; i < query.length; i++) {
-            _visibility.SetVisible(query[i], visible);
-        }
+        for(var i = 0; i < query.length; i++) _visibility.SetVisible(query[i], visible);
     }
 
-    $ax.visibility.SetVisible = function (element, visible) {
-        //not setting display to none to optimize measuring
+    $ax.visibility.SetVisible = function(element, visible) {
+        //todo -- ahhhh! I really don't want to add this, I don't know why it is necessary (right now sliding panel state out then in then out breaks
+        //and doesn't go hidden on the second out if we do not set display here.
         if(visible) {
+            //hmmm i will need to remove the class here cause display will not be overwriten by set to ''
             if($(element).hasClass(HIDDEN_CLASS)) $(element).removeClass(HIDDEN_CLASS);
             if($(element).hasClass(UNPLACED_CLASS)) $(element).removeClass(UNPLACED_CLASS);
             element.style.display = '';
-            element.style.visibility = 'inherit';
+            element.style.visibility = 'visible';
         } else {
             element.style.display = 'none';
             element.style.visibility = 'hidden';
         }
     };
 
-    var _setWidgetVisibility = $ax.visibility.SetWidgetVisibility = function (elementId, options) {
-        var visible = $ax.visibility.IsIdVisible(elementId);
+    var _setWidgetVisibility = $ax.visibility.SetWidgetVisibility = function(elementId, options) {
         // If limboed, just fire the next action then leave.
-        if(visible == options.value || _limboIds[elementId]) {
-            if(!_limboIds[elementId]) options.onComplete && options.onComplete();
+        if(_limboIds[elementId]) {
             $ax.action.fireAnimationFromQueue(elementId, $ax.action.queueTypes.fade);
             return;
         }
@@ -62,7 +60,7 @@
         var preserveScroll = false;
         var isPanel = $ax.public.fn.IsDynamicPanel(axObj.type);
         var isLayer = $ax.public.fn.IsLayer(axObj.type);
-        if(!options.noContainer && (isPanel || isLayer)) {
+        if(isPanel || isLayer) {
             //if dp has scrollbar, save its scroll position
             if(isPanel && axObj.scrollbars != 'none') {
                 var shownState = $ax.dynamicPanelManager.getShownState(elementId);
@@ -101,6 +99,12 @@
 
     var _setVisibility = function(parentId, childId, options, preserveScroll) {
         var wrapped = $jobj(childId);
+
+
+
+        //easing: easingOut
+
+
         var completeTotal = 1;
         var visible = $ax.visibility.IsIdVisible(childId);
 
@@ -132,7 +136,7 @@
                 if($ax.dynamicPanelManager.isIdFitToContent(panelId)) sizeId = panelId;
             }
 
-            if(sizeId) {
+            if (sizeId) {
                 needSetSize = true;
 
                 sizeObj = $jobj(sizeId);
@@ -158,12 +162,6 @@
                     wrappedOffset.top = boundingRectangle.top;
                     containerWidth = boundingRectangle.width;
                     containerHeight = boundingRectangle.height;
-                } else if (childObj && childObj.generateCompound) {
-                    var image = $jobj(childId + '_img');
-                    containerWidth = $ax.getNumFromPx(image.css('width'));
-                    containerHeight = $ax.getNumFromPx(image.css('height'));
-                    wrappedOffset.left = $ax.getNumFromPx(image.css('left'));
-                    wrappedOffset.top = $ax.getNumFromPx(image.css('top'));
                 } else {
                     containerWidth = $ax('#' + childId).width();
                     containerHeight = $ax('#' + childId).height();
@@ -200,7 +198,7 @@
             if(!containerExists) wrapped.appendTo(container);
 
             if (options.value && options.containInner) {
-                //has to set children first because flip to show needs children invisible
+                //has to set children first because flip to show needs childerns invisible
                 _setAllVisible(visibleWrapped, false);
                 _updateChildAlignment(childId);
                 _setAllVisible(child, true);
@@ -236,6 +234,12 @@
                     wrapped.insertBefore(container);
                     container.remove();
                 }
+                //child.css(css);
+
+                // Any text set or other things that triggered alignment updating during animation can happen now.
+                if(options.containInner) {
+                    for(i = 0; i < wrapped.length; i++) $ax.style.checkAlignmentQueue($(wrapped[i]).attr('id'));
+                }
 
                 if(childObj && $ax.public.fn.IsDynamicPanel(childObj.type) && window.modifiedDynamicPanleParentOverflowProp) {
                     child.css('overflow', 'hidden');
@@ -243,16 +247,12 @@
                 }
             }
 
-            if(options.value) _updateChildAlignment(childId);
-
             if(!needContainer || completeTotal == completeCount) {
                 if(options.cull) options.cull.css('position', cullPosition);
-
                 if(needSetSize) {
                     sizeObj.css('width', 'auto');
                     sizeObj.css('height', 'auto');
                 }
-
                 options.onComplete && options.onComplete();
 
                 if(options.fire) {
@@ -286,7 +286,7 @@
             if(options.value) {
                 if(preserveScroll) {
                     visibleWrapped.css('opacity', 0);
-                    visibleWrapped.css('visibility', 'inherit');
+                    visibleWrapped.css('visibility', 'visible');
                     visibleWrapped.css('display', 'block');
                     //was hoping we could just use fadein here, but need to set display before set scroll position
                     _tryResumeScrollForDP(childId);
@@ -301,8 +301,8 @@
                         }
                     });
                 } else {
-                    // Can't use $ax.visibility.SetIdVisible, because we only want to set visible, we don't want to set display, fadeIn will handle that.
-                    visibleWrapped.css('visibility', 'inherit');
+                    // Can't use $ax.visibility.SetIdVisible, because we only want to set visible, we don't want to display, fadeIn will handle that.
+                    visibleWrapped.css('visibility', 'visible');
                     visibleWrapped.fadeIn({
                         queue: false,
                         duration: options.duration, 
@@ -382,12 +382,12 @@
 
                 child.css({
                     'display': '',
-                    'visibility': 'inherit'
+                    'visibility': 'visible'
                 });
 
                 visibleWrapped.css({
                     'display': '',
-                    'visibility': 'inherit'
+                    'visibility': 'visible'
                 });
 
                 innerContainer.css({
@@ -466,7 +466,6 @@
                 _slideStateOut(size, childId, options, onOutComplete, visibleWrapped);
             }
         }
-
         // If showing, go through all rich text objects inside you, and try to redo alignment of them
         if(options.value && !options.containInner) {
             _updateChildAlignment(childId);
@@ -610,7 +609,6 @@
         if(resized) $ax.event.raiseSyntheticEvent(id, 'onResize');
     };
 
-    var containedFixed = {};
     var _pushContainer = _visibility.pushContainer = function(id, panel) {
         var count = containerCount[id];
         if(count) containerCount[id] = count + 1;
@@ -648,31 +646,16 @@
                     container.append(childContainer);
                 }
             } else {
-                var focus = _getCurrFocus();
-
                 // Layer needs to fix top left
                 var childIds = $ax('#' + id).getChildren()[0].children;
                 for(var i = 0; i < childIds.length; i++) {
                     var childId = childIds[i];
-                    var childObj = $jobj(childId);
-                    var fixedInfo = $ax.dynamicPanelManager.getFixedInfo(childId);
-                    if(fixedInfo.fixed) {
-                        var axObj = $ax('#' + childId);
-                        var left = axObj.left();
-                        var top = axObj.top();
-                        containedFixed[childId] = { left: left, top: top, fixed: fixedInfo };
-                        childObj.css('left', left);
-                        childObj.css('top', top);
-                        childObj.css('margin-left', 0);
-                        childObj.css('margin-top', 0);
-                        childObj.css('right', 'auto');
-                        childObj.css('bottom', 'auto');
-                        childObj.css('position', 'absolute');
-                    }
+                    if($ax.dynamicPanelManager.getFixedInfo(childId).fixed) continue;
                     var cssChange = {
                         left: '-=' + css.left,
                         top: '-=' + css.top
                     };
+                    var childObj = $jobj(childId);
                     if($ax.getTypeFromElementId(childId) == $ax.constants.LAYER_TYPE) {
                         _pushContainer(childId, false);
                         $ax.visibility.applyWidgetContainer(childId, true).css(cssChange);
@@ -686,19 +669,17 @@
                         //        if (grandChildId.indexOf(childId + 'p') >= 0 || grandChildId.indexOf('_container') >= 0) $jobj(grandChildId).css(cssChange);
                         //    }
                         //} else 
-                        // Need to include ann and ref in move.
-                        childObj = $addAll(childObj, childId);
                         childObj.css(cssChange);
+                        childObj = $addAll(childObj, childId);
                     }
 
                     container.append(childObj);
                 }
-                _setCurrFocus(focus);
             }
         }
     };
 
-    var _popContainer = _visibility.popContainer = function (id, panel) {
+    var _popContainer = _visibility.popContainer = function(id, panel) {
         var count = containerCount[id];
         if(!count) return;
         count--;
@@ -707,17 +688,8 @@
 
         var jobj = $jobj(id);
         var container = $ax.visibility.applyWidgetContainer(id, true);
-
-        // If layer is at bottom or right of page, unwrapping could change scroll by temporarily reducting page size.
-        //  To avoid this, we let container persist on page, with the size it is at this point, and don't remove container completely
-        //  until the children are back to their proper locations.
-        var size = $ax('#' + id).size();
-        container.css('width', size.width);
-        container.css('height', size.height);
-        var focus = _getCurrFocus();
         jobj.append(container.children());
-        _setCurrFocus(focus);
-        $('body').append(container);
+        container.remove();
 
         // Layer doesn't have children containers to clean up
         if(panel) {
@@ -734,6 +706,7 @@
             var childIds = $ax('#' + id).getChildren()[0].children;
             for (var i = 0; i < childIds.length; i++) {
                 var childId = childIds[i];
+                if($ax.dynamicPanelManager.getFixedInfo(childId).fixed) continue;
                 var cssChange = {
                     left: '+=' + left,
                     top: '+=' + top
@@ -751,60 +724,11 @@
                 //            if (grandChildId.indexOf(childId + 'p') >= 0 || grandChildId.indexOf('_container') >= 0) $jobj(grandChildId).css(cssChange);
                 //        }
                 //} else
-                    var allObjs = $addAll(childObj, childId); // Just include other objects for initial css. Fixed panels need to be dealt with separately.
-                    allObjs.css(cssChange);
-
-                    var fixedInfo = containedFixed[childId];
-                    if(fixedInfo) {
-                        delete containedFixed[childId];
-
-                        childObj.css('position', 'fixed');
-                        var deltaX = $ax.getNumFromPx(childObj.css('left')) - fixedInfo.left;
-                        var deltaY = $ax.getNumFromPx(childObj.css('top')) - fixedInfo.top;
-
-                        fixedInfo = fixedInfo.fixed;
-                        if(fixedInfo.horizontal == 'left') childObj.css('left', fixedInfo.x + deltaX);
-                        else if(fixedInfo.horizontal == 'center') {
-                            childObj.css('left', '50%');
-                            childObj.css('margin-left', fixedInfo.x + deltaX);
-                        } else {
-                            childObj.css('left', 'auto');
-                            childObj.css('right', fixedInfo.x - deltaX);
-                        }
-
-                        if(fixedInfo.vertical == 'top') childObj.css('top', fixedInfo.y + deltaY);
-                        else if(fixedInfo.vertical == 'middle') {
-                            childObj.css('top', '50%');
-                            childObj.css('margin-top', fixedInfo.y + deltaY);
-                        } else {
-                            childObj.css('top', 'auto');
-                            childObj.css('bottom', fixedInfo.y - deltaY);
-                        }
-
-                        $ax.dynamicPanelManager.updatePanelPercentWidth(childId);
-                        $ax.dynamicPanelManager.updatePanelContentPercentWidth(childId);
-
-                    }
+                    childObj.css(cssChange);
                 }
             }
         }
-        container.remove();
     };
-
-    var _getCurrFocus = function () {
-        // Only care about focused a tags and inputs
-        var id = window.lastFocusedClickable && window.lastFocusedClickable.id;
-
-        if(!id) return id;
-        var jobj = $(window.lastFocusedClickable);
-        return jobj.is('a') || jobj.is('input') ? id : '';
-    }
-
-    var _setCurrFocus = function(id) {
-        if(id) {
-            $jobj(id).focus();
-        }
-    }
 
     //use this to save & restore DP's scroll position when show/hide
     //key => dp's id (not state's id, because it seems we can change state while hiding)
@@ -856,7 +780,7 @@
         return container;
     };
 
-    var CONTAINER_SUFFIX = _visibility.CONTAINER_SUFFIX = '_container';
+    var CONTAINER_SUFFIX = '_container';
     var CONTAINER_INNER = CONTAINER_SUFFIX + '_inner';
     _visibility.getWidgetFromContainer = function(id) {
         var containerIndex = id.indexOf(CONTAINER_SUFFIX);
@@ -931,13 +855,13 @@
         var height = axObject.height();
 
         if(directionOut == "right") {
-            $ax.move.MoveWidget(stateId, width, 0, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, width, 0, options, false, onComplete, false, jobj);
         } else if(directionOut == "left") {
-            $ax.move.MoveWidget(stateId, -width, 0, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, -width, 0, options, false, onComplete, false, jobj);
         } else if(directionOut == "up") {
-            $ax.move.MoveWidget(stateId, 0, -height, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, 0, -height, options, false, onComplete, false, jobj);
         } else if(directionOut == "down") {
-            $ax.move.MoveWidget(stateId, 0, height, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, 0, height, options, false, onComplete, false, jobj);
         }
     };
 
@@ -967,13 +891,13 @@
 
         if(preserveScroll) _tryResumeScrollForDP(id);
         if(directionIn == "right") {
-            $ax.move.MoveWidget(stateId, width, 0, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, width, 0, options, false, onComplete, false, jobj);
         } else if(directionIn == "left") {
-            $ax.move.MoveWidget(stateId, -width, 0, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, -width, 0, options, false, onComplete, false, jobj);
         } else if(directionIn == "up") {
-            $ax.move.MoveWidget(stateId, 0, -height, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, 0, -height, options, false, onComplete, false, jobj);
         } else if(directionIn == "down") {
-            $ax.move.MoveWidget(stateId, 0, height, options, false, onComplete, false, jobj, true);
+            $ax.move.MoveWidget(stateId, 0, height, options, false, onComplete, false, jobj);
         }
     };
 
@@ -996,7 +920,7 @@
         $jobj(stateid).appendTo(panel);
         //when bring a panel to front, it will be focused, and the previous front panel should fire blur event if it's lastFocusedClickableSelector
         //ie(currently 11) and firefox(currently 34) doesn't fire blur event, this is the hack to fire it manually
-        if((IE || FIREFOX) && window.lastFocusedClickable && $ax.event.getFocusableWidgetOrChildId(window.lastFocusedControl) == window.lastFocusedClickable.id) {
+        if((IE || FIREFOX) && window.lastFocusedClickable && window.lastFocusedControl == window.lastFocusedClickable.id) {
             $(window.lastFocusedClickable).triggerHandler('blur');
         }
     };
@@ -1007,14 +931,14 @@
         var limboedByMaster = {};
         for(var key in newLimboIds) {
             if (!$ax.public.fn.IsReferenceDiagramObject($ax.getObjectFromElementId(key).type)) continue;
-            var ids = $ax.model.idsInRdoToHideOrLimbo(key);
+            var ids = $ax.model.idsInRdo(key);
             for(var i = 0; i < ids.length; i++) limboedByMaster[ids[i]] = true;
         }
 
         var hiddenByMaster = {};
         for(key in newHiddenIds) {
             if (!$ax.public.fn.IsReferenceDiagramObject($ax.getObjectFromElementId(key).type)) continue;
-            ids = $ax.model.idsInRdoToHideOrLimbo(key);
+            ids = $ax.model.idsInRdo(key);
             for(i = 0; i < ids.length; i++) hiddenByMaster[ids[i]] = true;
         }
 
@@ -1023,22 +947,26 @@
         newHiddenIds = $.extend(newHiddenIds, hiddenByMaster);
 
         // something is only visible if it's not hidden and limboed
+
+        //if(!skipSetting) {
         query.each(function(diagramObject, elementId) {
             // Rdos already handled, contained widgets are limboed by the parent, and sub menus should be ignored
-            if(diagramObject.isContained || $ax.public.fn.IsReferenceDiagramObject(diagramObject.type) || $ax.public.fn.IsTableCell(diagramObject.type) || $jobj(elementId).hasClass('sub_menu')) return;
+            if($ax.public.fn.IsReferenceDiagramObject(diagramObject.type) || $ax.public.fn.IsTableCell(diagramObject.type) || diagramObject.isContained || $jobj(elementId).hasClass('sub_menu')) return;
             if(diagramObject.type == 'table' && $jobj(elementId).parent().hasClass('ax_menu')) return;
             if(skipRepeater) {
                 // Any item in a repeater should return
-                if($ax.getParentRepeaterFromElementIdExcludeSelf(elementId)) return;
+                var repeater = $ax.getParentRepeaterFromElementId(elementId);
+                if (repeater && repeater != elementId) return;
             }
 
             var scriptId = $ax.repeater.getScriptIdFromElementId(elementId);
             var shouldBeVisible = Boolean(!newLimboIds[scriptId] && !newHiddenIds[scriptId]);
             var isVisible = Boolean(_isIdVisible(elementId));
             if(shouldBeVisible != isVisible) {
-                _setWidgetVisibility(elementId, { value: shouldBeVisible, noContainer: true });
+                _setWidgetVisibility(elementId, { value: shouldBeVisible });
             }
         });
+        //}
 
         _limboIds = _visibility.limboIds = $.extend(_limboIds, newLimboIds);
 
@@ -1069,16 +997,6 @@
 
         var itemId = $ax.getItemIdsForRepeater(repeater)[0];
         return _limboIds[$ax.repeater.createElementId(scriptId, itemId)];
-    }
-
-    $ax.visibility.isElementIdLimboOrInLimboContainer = function (elementId) {
-        var parent = document.getElementById(elementId);
-        while(parent) {
-            var scriptId = $ax.repeater.getScriptIdFromElementId($(parent).attr('id'));
-            if(_limboIds[scriptId]) return true;
-            parent = parent.parentElement;
-        }
-        return false;
     }
 
     $ax.visibility.initialize = function() {

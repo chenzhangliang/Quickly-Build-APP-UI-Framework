@@ -261,7 +261,7 @@
                 while(parent) {
                     parents[parents.length] = parent;
                     // If id is not a valid object, you are either repeater item or dynamic panel state
-                    //if(!$obj(parent)) parent = $ax.visibility.getWidgetFromContainer($jobj(parent).parent().attr('id'));
+                    if(!$obj(parent)) parent = $ax.visibility.getWidgetFromContainer($jobj(parent).parent().attr('id'));
 
                     parent = getParent(parent);
                 }
@@ -309,7 +309,7 @@
 
                 // Menu doesn't want all children, only tables and menus, so it must be handled specially
                 var children = isMenu ? parent.children('.ax_table').add(parent.children('.ax_menu')) : parent.children();
-                children = $ax.visibility.getRealChildren(_fixForBasicLinks(children));
+                children = $ax.visibility.getRealChildren(children);
                 
                 // For tree nodes you want the the button shape contained by the elementQuery too
                 if(isTreeNode) {
@@ -352,16 +352,6 @@
             children[children.length] = { id : elementIds[i], children : getChildren(elementIds[i])};
         }
         return children;
-    };
-
-    var _fixForBasicLinks = function(query) {
-        var retval = $();
-        for(var i = 0; i < query.length; i++) {
-            var child = $(query[i]);
-            if(child.hasClass('basiclink')) retval = retval.add(child.children());
-            else retval = retval.add(child);
-        }
-        return retval;
     };
 
 })();

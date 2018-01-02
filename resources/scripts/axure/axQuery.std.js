@@ -57,13 +57,6 @@ $axure.internal(function($ax) {
     var PLAIN_TEXT_TYPES = [$ax.constants.TEXT_BOX_TYPE, $ax.constants.TEXT_AREA_TYPE, $ax.constants.LIST_BOX_TYPE,
         $ax.constants.COMBO_BOX_TYPE, $ax.constants.CHECK_BOX_TYPE, $ax.constants.RADIO_BUTTON_TYPE, $ax.constants.BUTTON_TYPE];
 
-    $ax.public.fn.IsResizable = function (type) { return $.inArray(type, RESIZABLE_TYPES) !== -1; }
-    var RESIZABLE_TYPES = [
-        $ax.constants.BUTTON_TYPE, $ax.constants.DYNAMIC_PANEL_TYPE, $ax.constants.IMAGE_BOX_TYPE, $ax.constants.IMAGE_MAP_REGION_TYPE,
-        $ax.constants.INLINE_FRAME_TYPE, $ax.constants.LAYER_TYPE, $ax.constants.LIST_BOX_TYPE, $ax.constants.COMBO_BOX_TYPE,
-        $ax.constants.VECTOR_SHAPE_TYPE, $ax.constants.TEXT_AREA_TYPE, $ax.constants.TEXT_BOX_TYPE, $ax.constants.SNAPSHOT_TYPE
-    ];
-
     var _addJQueryFunction = function(name) {
         $ax.public.fn[name] = function() {
             var val = $.fn[name].apply(this.jQuery(), arguments);
@@ -354,6 +347,7 @@ $axure.internal(function($ax) {
             } else query.animate({ opacity: opacity }, { duration: duration, easing: easing, queue: false, complete: onComplete });
         }
     }
+
     //move one widget.  I didn't combine moveto and moveby, since this is in .public, and separate them maybe more clear for the user
     var _move = function (elementId, x, y, options, moveTo) {
         if(!options.easing) options.easing = 'none';
@@ -362,11 +356,28 @@ $axure.internal(function($ax) {
 
         // Layer move using container now.
         if($ax.public.fn.IsLayer(obj.type)) {
+            var moveInfo = $ax.move.RegisterMoveInfo(elementId, x, y, moveTo, options);
+            //$ax.event.raiseSyntheticEvent(elementId, "onMove");
+
+            //var childrenIds = $ax.public.fn.getLayerChildrenDeep(elementId, true);
+            //for(var i = 0; i < childrenIds.length; i++) $ax.event.raiseSyntheticEvent(childrenIds[i], 'onMove');
+
             $ax.move.MoveWidget(elementId, x, y, options, moveTo,
                 function () {
                     if(options.onComplete) options.onComplete();
                     $ax.dynamicPanelManager.fitParentPanel(elementId);
-                }, false);
+                }, false, undefined, moveInfo);
+            //var childrenIds = $ax.public.fn.getLayerChildrenDeep(elementId);
+            //if(childrenIds.length == 0) return;
+
+            //for(var i = 0; i < childrenIds.length - 1; i++) {
+            //    $ax.move.MoveWidget(childrenIds[i], x, y, easing, duration, moveTo,
+            //        function() { $ax.dynamicPanelManager.fitParentPanel(childrenIds[i]); }, false);
+            //}
+
+            //$ax.move.MoveWidget(childrenIds[i], x, y, easing, duration, moveTo,
+            //    function () { $ax.dynamicPanelManager.fitParentPanel(childrenIds[i]); }, true, null, elementId);
+
         } else {
             var xDelta = x;
             var yDelta = y;
@@ -378,10 +389,13 @@ $axure.internal(function($ax) {
                 xDelta = x - left;
                 yDelta = y - top;
             }
+            moveInfo = $ax.move.RegisterMoveInfo(elementId, xDelta, yDelta, false, options);
+            //$ax.event.raiseSyntheticEvent(elementId, "onMove");
             $ax.move.MoveWidget(elementId, xDelta, yDelta, options, false,
-                function () { $ax.dynamicPanelManager.fitParentPanel(elementId); }, true);
+                function () { $ax.dynamicPanelManager.fitParentPanel(elementId); }, true, undefined, moveInfo);
         }
     };
+
 
     $ax.public.fn.moveTo = function (x, y, options) {
         var elementIds = this.getElementIds();
@@ -398,8 +412,7 @@ $axure.internal(function($ax) {
         if(x == 0 && y == 0) {
             for(var i = 0; i < elementIds.length; i++) {
                 var elementId = elementIds[i];
-                $ax.move.nopMove(elementId, options);
-
+                $ax.move.nopMove(elementId);
                 //$ax.event.raiseSyntheticEvent(elementId, "onMove");
                 $ax.action.fireAnimationFromQueue(elementId, $ax.action.queueTypes.move);
 
@@ -425,7 +438,7 @@ $axure.internal(function($ax) {
             var elementId = elementIds[index];
 
             var onComplete = function () {
-                $ax.dynamicPanelManager.fitParentPanel(elementId);
+                if (doRotation) $ax.dynamicPanelManager.fitParentPanel(elementId);
                 if (moveComplete) moveComplete();
             }
 
@@ -453,14 +466,12 @@ $axure.internal(function($ax) {
         for(var index = 0; index < elementIds.length; index++) {
             var elementId = elementIds[index];
 
-            var obj = $obj(elementId);
-            if(!$ax.public.fn.IsResizable(obj.type)) continue;
-
             var oldSize = $ax('#' + elementId).size();
             var oldWidth = oldSize.width;
             var oldHeight = oldSize.height;
             var query = $jobj(elementId);
 
+            var obj = $obj(elementId);
             var isDynamicPanel = $ax.public.fn.IsDynamicPanel(obj.type);
             if(isDynamicPanel) {
                 // No longer fitToContent, calculate additional styling that needs to be done.
@@ -505,7 +516,7 @@ $axure.internal(function($ax) {
                         //var currentTextHeight = Number($(textChildren.children('p')[0]).css('height').replace('px', ''));
                         //textChildren.css('height', currentTextHeight);
                         var display = $ax.public.fn.displayHackStart(document.getElementById(textDivId));
-                        $ax.style.updateTextAlignmentForVisibility(textDivId);
+                        $ax.style.updateTextAlignmentForVisibility(textDivId, true);
                         $ax.public.fn.displayHackEnd(display);
                     };
                 }
@@ -529,7 +540,7 @@ $axure.internal(function($ax) {
 
             if(children && children.length !== 0) {
                 var childAnimationArray = [];
-                var isConnector = $ax.public.fn.IsConnector(obj.type);
+                var isConnector = $ax.public.fn.IsConnector($obj(elementId).type);
                 children.each(function (i, child) {
                     var childCss = {
                         width: newLocationAndSizeCss.width,
@@ -1206,52 +1217,24 @@ $axure.internal(function($ax) {
 
     var _fixedOffset = function (id, vert) {
         var axObj = $obj(id);
+        var obj = $jobj(id);
         var dim = vert ? 'height' : 'width';
         var vertKey = (vert ? 'Vertical' : 'Horizontal');
         var key = 'fixed' + vertKey;
         var alignment = axObj[key];
-        if(!alignment) return { valid: false };
-        var loc = 0;
-
-        // TODO: This returns 0 for width/height it or any parent is display none. Similar issue when using axquery width/height
-        // TODO:  Look into replacing this with axquery width/height and fixing that to use this hack. Potentially want to make js generic trapper.
-        var trap = _displayWidget(id);
-        var query = $jobj(id);
-        var objSize = query[dim]();
-        trap();
-
+        var loc = axObj['fixedMargin' + vertKey];
         if(alignment == 'center' || alignment == 'middle') {
-            loc = $ax.getNumFromPx(query.css('margin-' + (vert ? 'top' : 'left')));
-            loc += ($(window)[dim]()) / 2;
+            loc += ($(window)[dim]() - obj[dim]()) / 2;
         } else if(alignment == 'bottom' || alignment == 'right') {
-            loc = $ax.getNumFromPx(query.css(vert ? 'bottom' : 'right'));
-            loc = $(window)[dim]() - objSize - loc; // subract loc because margin here moves farther left/up as it gets bigger.
-        } else {
-            loc = $ax.getNumFromPx(query.css(vert ? 'top' : 'left'));
+            loc = $(window)[dim]() - obj[dim]() - loc; // subract loc because margin here moves farther left/up as it gets bigger.
         }
 
-        var scrollKey = 'scroll' + (vert ? 'Y' : 'X');
-        return { offset: window[scrollKey] + loc, valid: true };
+        if(axObj[key]) {
+            var scrollKey = 'scroll' + (vert ? 'Y' : 'X');
+            return { offset: window[scrollKey] + loc, valid: true };
+        }
+
+        return { valid: false };
     };
 
-    var _displayWidget = function(id) {
-        var parents = $ax('#' + id).getParents(true, '*')[0];
-        parents.push(id); // also need to show self
-
-        var displayed = [];
-        for(var i = 0; i < parents.length; i++) {
-            var currId = parents[i];
-            var currObj = $jobj(currId);
-            if(currObj.css('display') == 'none') {
-                currObj.css('display', 'block');
-                displayed.push(currId);
-            }
-        }
-
-        return function() {
-            for(var i = 0; i < displayed.length; i++) {
-                $jobj(displayed[i]).css('display', 'none');
-            }
-        };
-    }
 });

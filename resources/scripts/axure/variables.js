@@ -55,7 +55,7 @@ $axure.internal(function($ax) {
             case "date": return Date;
 
             case "window": return eventInfo && eventInfo.window;
-            case "this": return eventInfo && eventInfo.thiswidget && $ax.getWidgetInfo(eventInfo.thiswidget.elementId);
+            case "this": return eventInfo && eventInfo.srcElement && $ax.getWidgetInfo(eventInfo.srcElement);
             case "item": return (eventInfo && eventInfo.item && eventInfo.item.valid && eventInfo.item) || getVariableValue('targetitem', eventInfo, ignoreDefaultsForLinkUrl);
             case "targetitem": return eventInfo && eventInfo.targetElement && $ax.getItemInfo(eventInfo.targetElement);
             case "repeater": return eventInfo && eventInfo.repeater;

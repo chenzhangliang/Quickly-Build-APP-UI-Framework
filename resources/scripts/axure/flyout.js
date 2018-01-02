@@ -231,20 +231,7 @@ $axure.internal(function($ax) {
         var info = idToPlaceholderInfo[elementId];
         if(!info || info.active == active) return;
         info.active = active;
-
-        if(active) var value = info.text;
-        else if(!ANDROID) value = clearText ? '' : document.getElementById(inputId).value;
-        else {
-            var currentText = document.getElementById(inputId).value;
-            if(!clearText) value = currentText;
-            else if(currentText == info.text) value = "";
-            else {
-                var lastIndex = currentText.lastIndexOf(info.text);
-                //here i am assuming the text is always inserted in front
-                value = currentText.substring(0, lastIndex);
-            }
-        }
-
+        var value = active ? info.text : clearText ? '' : $jobj(inputId).val();
         $ax.style.SetWidgetPlaceholder(elementId, active, value, info.password);
     };
     _placeholderManager.updatePlaceholder = _updatePlaceholder;

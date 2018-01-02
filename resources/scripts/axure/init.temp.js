@@ -90,7 +90,7 @@
         });
 
         window.lastFocusedClickable = null;
-        var _lastFocusedClickableSelector = 'div[tabIndex=0], img[tabIndex=0], input, a';
+        var _lastFocusedClickableSelector = 'div[tabIndex=0], img[tabIndex=0], a';
         var shouldOutline = true;
 
         $ax(function (dObj) { return dObj.tabbable; }).each(function (dObj, elementId) {

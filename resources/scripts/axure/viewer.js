@@ -46,6 +46,14 @@ $axure.internal(function ($ax) {
     var _applyHighlight = $ax.applyHighlight = function(query, ignoreUnset) {
         if(ignoreUnset && !highlightEnabled) return;
 
+        //Do condition to check if legacy browser (all IE, except 10) and select appropriate pulsate css class name
+        var userAgentString = navigator.userAgent.toLowerCase();
+
+        var isIEpre10 = userAgentString.indexOf('msie 9.') != -1 ||
+                userAgentString.indexOf('msie 8.') != -1 ||
+                userAgentString.indexOf('msie 7.') != -1 ||
+                userAgentString.indexOf('msie 6.') != -1;
+
         var pulsateClassName = 'legacyPulsateBorder';
 
         //Find all widgets with a defined userTriggeredEventName specified in the array above

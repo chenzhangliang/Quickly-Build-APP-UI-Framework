@@ -10,7 +10,6 @@ var FIREFOX = false;
 var WEBKIT = false;
 var OS_MAC = false;
 var IOS = false;
-var ANDROID = false;
 var MOBILE_DEVICE = false;
 
 var IE = false;
@@ -47,10 +46,12 @@ var BROWSER_VERSION = 5000;
     OS_MAC = Boolean(macRegex.exec(window.navigator.platform));
 
     IOS = useragent.match(/iPhone/i) || useragent.match(/iPad/i) || useragent.match(/iPod/i);
-    ANDROID = useragent.match(/Android/i);
 
-    MOBILE_DEVICE = ANDROID || IOS
+    MOBILE_DEVICE = navigator.userAgent.match(/Android/i)
         || navigator.userAgent.match(/webOS/i)
+        || navigator.userAgent.match(/iPhone/i)
+        || navigator.userAgent.match(/iPad/i)
+        || navigator.userAgent.match(/iPod/i)
         || navigator.userAgent.match(/BlackBerry/i)
         || navigator.userAgent.match(/Tablet PC/i)
         || navigator.userAgent.match(/Windows Phone/i);
@@ -207,31 +208,7 @@ var BROWSER_VERSION = 5000;
         });
     };
 
-    var _combineEventMessages = false;
-    var _compositeEventMessageData = [];
-    _messageCenter.startCombineEventMessages = function() {
-        _combineEventMessages = true;
-    }
-
-    _messageCenter.endCombineEventMessages = function () {
-        _messageCenter.sendCompositeEventMessage();
-        _combineEventMessages = false;
-    }
-
-    _messageCenter.sendCompositeEventMessage = function () {
-        _messageCenter.postMessage('axCompositeEventMessage', _compositeEventMessageData);
-        _compositeEventMessageData = [];
-    }
-
-    _messageCenter.postMessage = function (message, data) {
-        if(_combineEventMessages) {
-            if(message == 'axEvent' || message == 'axCase' || message == 'axAction' || message == 'axEventComplete') {
-                _compositeEventMessageData.push({ 'message': message, 'data': data });
-                if(_compositeEventMessageData.length >= 10) _messageCenter.sendCompositeEventMessage();
-                return;
-            }
-        }
-
+    _messageCenter.postMessage = function(message, data) {
         if(!CHROME_5_LOCAL) {
             _topMessageCenter.dispatchMessageRecursively(message, data);
         } else {
